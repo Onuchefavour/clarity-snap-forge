@@ -9,6 +9,9 @@
 (define-constant err-listing-not-found (err u104))
 (define-constant err-invalid-price (err u105))
 (define-constant err-listing-active (err u106))
+(define-constant err-invalid-recipient (err u107))
+(define-constant err-invalid-date (err u108))
+(define-constant MAX-EDITION-SIZE u1000)
 
 ;; Define NFT
 (define-non-fungible-token snap-photo uint)
@@ -58,6 +61,10 @@
     )
 )
 
+(define-private (is-valid-date (date uint))
+    (< date (get-block-time))
+)
+
 ;; Public Functions
 (define-public (mint-photo (title (string-utf8 100)) 
                         (description (string-utf8 500))
@@ -73,7 +80,9 @@
         )
         (asserts! (<= royalty u100) err-invalid-params)
         (asserts! (> edition-total u0) err-invalid-params)
+        (asserts! (<= edition-total MAX-EDITION-SIZE) err-invalid-params)
         (asserts! (not (is-eq title "")) err-invalid-params)
+        (asserts! (is-valid-date date-taken) err-invalid-date)
         
         (try! (nft-mint? snap-photo token-id tx-sender))
         (map-set photo-metadata token-id
@@ -99,6 +108,7 @@
     (begin
         (asserts! (is-token-owner token-id tx-sender) err-not-token-owner)
         (asserts! (not (is-listed token-id)) err-listing-active)
+        (asserts! (is-some (principal-get-contract-id? recipient)) err-invalid-recipient)
         (nft-transfer? snap-photo token-id tx-sender recipient)
     )
 )
